@@ -4,10 +4,11 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: '/WhisperingOrchids/',
+  base: process.env.NODE_ENV === 'production' ? '/WhisperingOrchids/' : '/',
   server: {
     host: '0.0.0.0',
-    port: 5179
+    port: 5179,
+    strictPort: true
   },
   build: {
     outDir: 'dist',
