@@ -1,0 +1,729 @@
+import { LayoutElement } from "../types.js";
+import React, { useState, ChangeEvent, useEffect, useRef } from 'react';
+import { HexColorPicker } from 'react-colorful';
+
+
+
+
+
+
+const getDefaultLayout = (target: string): LayoutElement[] => {
+  // IMPORTANT NOTE ON elementId's (Pane Names):
+  // elementId's are internal identifiers used by the Nintendo Switch UI (.bflyt files).
+  // They are not officially documented by Nintendo and are typically discovered through
+  // reverse-engineering tools like Switch Layout Editor. Comprehensive lists for all
+  // applets are difficult to obtain through web research alone.
+  //
+  // For 'Home Menu' and 'Lockscreen', some commonly known elementId's are used.
+  // For other applets ('All Software', 'System Settings', 'User Page', 'News'),
+  // generic placeholder IDs are used. These placeholders allow users to visually
+  // manipulate elements, but may not correspond to actual UI panes in the game.
+  // Users wishing to target specific UI elements in these applets may need to
+  // discover the correct elementId's themselves (e.g., by inspecting existing
+  // themes with Switch Layout Editor).
+
+  if (target === 'Home Menu') {
+    return [
+      {
+        id: 'N_GameRoot',
+        type: 'pane',
+        position: { x: 0, y: 0 },
+        size: { width: 1280, height: 720 },
+        scale: { x: 1, y: 1 },
+        rotation: { x: 0, y: 0, z: 0 },
+        visible: true,
+        color: '#FF00001A', // Very light red, background for game area
+      },
+      {
+        id: 'N_ScrollWindow',
+        type: 'pane',
+        position: { x: 0, y: 100 },
+        size: { width: 1280, height: 500 },
+        scale: { x: 1, y: 1 },
+        rotation: { x: 0, y: 0, z: 0 },
+        visible: true,
+        color: '#0000FF1A', // Very light blue, scrollable game window
+      },
+      {
+        id: 'N_Game',
+        type: 'pane',
+        position: { x: 50, y: 150 },
+        size: { width: 200, height: 200 },
+        scale: { x: 1, y: 1 },
+        rotation: { x: 0, y: 0, z: 0 },
+        visible: true,
+        color: '#00FF0033', // Light green, individual game container
+      },
+      {
+        id: 'N_Icon_00',
+        type: 'pic1',
+        position: { x: 60, y: 160 },
+        size: { width: 180, height: 180 },
+        scale: { x: 1, y: 1 },
+        rotation: { x: 0, y: 0, z: 0 },
+        visible: true,
+        color: '#FFFF0066', // Light yellow, game icon
+      },
+      {
+        id: 'RdtBtnIconGame',
+        type: 'pane',
+        position: { x: 50, y: 150 },
+        size: { width: 200, height: 200 },
+        scale: { x: 1, y: 1 },
+        rotation: { x: 0, y: 0, z: 0 },
+        visible: true,
+        color: '#FF00FF1A', // Light magenta, game icon button
+      },
+      {
+        id: 'RootPane',
+        type: 'pane',
+        position: { x: 0, y: 0 }, // Relative to RdtBtnIconGame
+        size: { width: 200, height: 200 },
+        scale: { x: 1, y: 1 },
+        rotation: { x: 0, y: 0, z: 0 },
+        visible: true,
+        color: '#00FFFF1A', // Light cyan, inner pane of game icon button
+      },
+      {
+        id: 'B_Hit',
+        type: 'pane',
+        position: { x: 0, y: 0 }, // Relative to RdtBtnIconGame
+        size: { width: 200, height: 200 },
+        scale: { x: 1, y: 1 },
+        rotation: { x: 0, y: 0, z: 0 },
+        visible: true,
+        color: '#8000801A', // Light purple, hitbox of game icon button
+      },
+      {
+        id: 'SystemSettingsButton',
+        type: 'pic1',
+        position: { x: 1000, y: 600 },
+        size: { width: 150, height: 50 },
+        scale: { x: 1, y: 1 },
+        rotation: { x: 0, y: 0, z: 0 },
+        visible: true,
+        color: '#0000FF80', // Semi-transparent blue
+      },
+      // Add more Home Menu specific elements here as needed
+    ];
+  } else if (target === 'Lockscreen') {
+    return [
+      {
+        id: 'LockscreenClock',
+        type: 'txt1',
+        position: { x: 500, y: 300 },
+        size: { width: 200, height: 50 },
+        scale: { x: 1, y: 1 },
+        rotation: { x: 0, y: 0, z: 0 },
+        visible: true,
+        color: '#FFFFFFC0', // Semi-transparent white
+      },
+      {
+        id: 'LockscreenBattery',
+        type: 'pic1',
+        position: { x: 100, y: 50 },
+        size: { width: 80, height: 40 },
+        scale: { x: 1, y: 1 },
+        rotation: { x: 0, y: 0, z: 0 },
+        visible: true,
+        color: '#00FF00C0', // Semi-transparent green
+      },
+      // Add more Lockscreen specific elements here
+    ];
+  } else if (target === 'All Software') {
+    return [
+      {
+        id: 'AllSoftwareGrid',
+        type: 'pane',
+        position: { x: 50, y: 50 },
+        size: { width: 1180, height: 600 },
+        scale: { x: 1, y: 1 },
+        rotation: { x: 0, y: 0, z: 0 },
+        visible: true,
+        color: '#80808080', // Semi-transparent gray
+      },
+      {
+        id: 'AllSoftwareSearch',
+        type: 'pane',
+        position: { x: 100, y: 10 },
+        size: { width: 1080, height: 30 },
+        scale: { x: 1, y: 1 },
+        rotation: { x: 0, y: 0, z: 0 },
+        visible: true,
+        color: '#C0C0C080', // Semi-transparent light gray
+      },
+    ];
+  } else if (target === 'System Settings') {
+    return [
+      {
+        id: 'SettingsMenu',
+        type: 'pane',
+        position: { x: 0, y: 0 },
+        size: { width: 400, height: 720 },
+        scale: { x: 1, y: 1 },
+        rotation: { x: 0, y: 0, z: 0 },
+        visible: true,
+        color: '#40404080', // Semi-transparent dark gray
+      },
+      {
+        id: 'SettingsContent',
+        type: 'pane',
+        position: { x: 400, y: 0 },
+        size: { width: 880, height: 720 },
+        scale: { x: 1, y: 1 },
+        rotation: { x: 0, y: 0, z: 0 },
+        visible: true,
+        color: '#60606080', // Semi-transparent medium gray
+      },
+    ];
+  } else if (target === 'User Page') {
+    return [
+      {
+        id: 'UserIcon',
+        type: 'pic1',
+        position: { x: 50, y: 50 },
+        size: { width: 100, height: 100 },
+        scale: { x: 1, y: 1 },
+        rotation: { x: 0, y: 0, z: 0 },
+        visible: true,
+        color: '#FFFF0080', // Semi-transparent yellow
+      },
+      {
+        id: 'UserName',
+        type: 'txt1',
+        position: { x: 160, y: 80 },
+        size: { width: 200, height: 30 },
+        scale: { x: 1, y: 1 },
+        rotation: { x: 0, y: 0, z: 0 },
+        visible: true,
+        color: '#FFFFFFC0', // Semi-transparent white
+      },
+    ];
+  } else if (target === 'News') {
+    return [
+      {
+        id: 'NewsFeedItem1',
+        type: 'pane',
+        position: { x: 50, y: 50 },
+        size: { width: 1180, height: 150 },
+        scale: { x: 1, y: 1 },
+        rotation: { x: 0, y: 0, z: 0 },
+        visible: true,
+        color: '#A0A0A080', // Semi-transparent gray
+      },
+      {
+        id: 'NewsFeedItem2',
+        type: 'pane',
+        position: { x: 50, y: 220 },
+        size: { width: 1180, height: 150 },
+        scale: { x: 1, y: 1 },
+        rotation: { x: 0, y: 0, z: 0 },
+        visible: true,
+        color: '#A0A0A080', // Semi-transparent gray
+      },
+    ];
+  } else if (target === 'Player select applet') {
+    return [
+      {
+        id: 'PlayerSelectRoot',
+        type: 'pane',
+        position: { x: 0, y: 0 },
+        size: { width: 1280, height: 720 },
+        scale: { x: 1, y: 1 },
+        rotation: { x: 0, y: 0, z: 0 },
+        visible: true,
+        color: '#FFC0CB1A', // Light pink
+      },
+      {
+        id: 'PlayerIcon1',
+        type: 'pic1',
+        position: { x: 100, y: 200 },
+        size: { width: 150, height: 150 },
+        scale: { x: 1, y: 1 },
+        rotation: { x: 0, y: 0, z: 0 },
+        visible: true,
+        color: '#ADD8E666', // Light blue
+      },
+      {
+        id: 'PlayerName1',
+        type: 'txt1',
+        position: { x: 100, y: 360 },
+        size: { width: 150, height: 30 },
+        scale: { x: 1, y: 1 },
+        rotation: { x: 0, y: 0, z: 0 },
+        visible: true,
+        color: '#FFFFFFCC', // White
+      },
+    ];
+  }
+  return []; // Default empty array
+};
+
+// Helper component for input groups
+interface InputGroupProps {
+  label: string;
+  type: string;
+  value: string | number | boolean;
+  onChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  min?: number;
+  max?: number;
+  step?: number;
+}
+
+const InputGroup: React.FC<InputGroupProps> = ({ label, type, value, onChange, min, max, step }) => (
+  <div className="mb-2">
+    <label className="block text-xs font-medium text-gray-700">{label}</label>
+    <input
+      type={type}
+      value={value as any}
+      onChange={onChange}
+      min={min}
+      max={max}
+      step={step}
+      className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${type === 'checkbox' ? 'w-auto' : ''}`}
+      checked={type === 'checkbox' ? (value as boolean) : undefined}
+    />
+  </div>
+);
+
+interface LayoutEditorProps {
+  onElementsChange: (elements: LayoutElement[]) => void;
+  themeTarget: string; // New prop for theme target
+}
+
+// Utility to convert RGBA hex to standard hex (for color picker)
+const rgbaToHex = (rgba: string): string => {
+  const match = rgba.match(/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
+  if (match) {
+    return `#${match[1]}${match[2]}${match[3]}`;
+  }
+  return rgba; // Return as is if not a valid RGBA hex
+};
+
+// Utility to convert standard hex to RGBA hex (for internal use)
+const hexToRgba = (hex: string, alpha: string = 'FF'): string => {
+  const match = hex.match(/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
+  if (match) {
+    return `#${match[1]}${match[2]}${match[3]}${alpha}`;
+  }
+  return hex; // Return as is if not a valid hex
+};
+
+const LayoutEditor: React.FC<LayoutEditorProps> = ({ onElementsChange, themeTarget }) => {
+  const [elements, setElements] = useState<LayoutElement[]>(getDefaultLayout(themeTarget));
+  const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
+  const [newElementId, setNewElementId] = useState<string>('');
+
+  const previewRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [draggedElementId, setDraggedElementId] = useState<string | null>(null);
+  const [dragOffset, setDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  const [isResizing, setIsResizing] = useState(false);
+  const [resizeHandle, setResizeHandle] = useState<string | null>(null);
+  const [initialMousePos, setInitialMousePos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [initialElementRect, setInitialElementRect] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
+
+  const selectedElement = elements.find(el => el.id === selectedElementId);
+
+  // Notify parent component whenever elements change
+  useEffect(() => {
+    onElementsChange(elements);
+  }, [elements, onElementsChange]);
+
+  // Update elements when themeTarget changes
+  useEffect(() => {
+    setElements(getDefaultLayout(themeTarget));
+    setSelectedElementId(null); // Clear selection when layout changes
+  }, [themeTarget]);
+
+  const handleElementClick = (id: string) => {
+    setSelectedElementId(id);
+  };
+
+  const handlePropertyChange = (property: string, value: any) => {
+    if (!selectedElement) return;
+
+    setElements(prevElements =>
+      prevElements.map(el =>
+        el.id === selectedElement.id
+          ? { ...el, [property]: value } // Direct property update
+          : el
+      )
+    );
+  };
+
+  const handleNestedPropertyChange = (parentProperty: keyof LayoutElement, childProperty: string, value: any) => {
+    if (!selectedElement) return;
+
+    setElements(prevElements =>
+      prevElements.map(el =>
+        el.id === selectedElement.id
+          ? {
+              ...el,
+              [parentProperty]: {
+                ...(el[parentProperty] as any),
+                [childProperty]: value,
+              },
+            }
+          : el
+      )
+    );
+  };
+
+  const handleAddElement = () => {
+    if (newElementId.trim() === '') {
+      alert('Element ID cannot be empty.');
+      return;
+    }
+    if (elements.some(el => el.id === newElementId.trim())) {
+      alert(`Element with ID '${newElementId.trim()}' already exists.`);
+      return;
+    }
+
+    const newElement: LayoutElement = {
+      id: newElementId.trim(),
+      type: 'pane', // Default type, can be made selectable later
+      position: { x: 0, y: 0 },
+      size: { width: 100, height: 100 },
+      scale: { x: 1, y: 1 },
+      rotation: { x: 0, y: 0, z: 0 },
+      visible: true,
+      color: '#CCCCCC80', // Default semi-transparent gray
+    };
+
+    setElements(prevElements => [...prevElements, newElement]);
+    setNewElementId(''); // Clear input
+    setSelectedElementId(newElement.id); // Select the newly added element
+  };
+
+  const handleDeleteElement = () => {
+    if (!selectedElement) return;
+
+    if (window.confirm(`Are you sure you want to delete element '${selectedElement.id}'?`)) {
+      setElements(prevElements => prevElements.filter(el => el.id !== selectedElement.id));
+      setSelectedElementId(null); // Clear selection after deleting
+    }
+  };
+
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>, id: string) => {
+    // Only start dragging if not resizing
+    if (isResizing) return;
+
+    if (previewRef.current) {
+      const rect = previewRef.current.getBoundingClientRect();
+      const element = elements.find(el => el.id === id);
+      if (element) {
+        setIsDragging(true);
+        setDraggedElementId(id);
+        setDragOffset({
+          x: e.clientX - rect.left - element.position.x,
+          y: e.clientY - rect.top - element.position.y,
+        });
+        setSelectedElementId(id); // Select element on drag start
+      }
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!previewRef.current) return;
+
+    const rect = previewRef.current.getBoundingClientRect();
+
+    if (isDragging && draggedElementId) {
+      const newX = e.clientX - rect.left - dragOffset.x;
+      const newY = e.clientY - rect.top - dragOffset.y;
+
+      setElements(prevElements =>
+        prevElements.map(el =>
+          el.id === draggedElementId
+            ? {
+                ...el,
+                position: {
+                  x: Math.max(0, Math.min(newX, 1280 - el.size.width)), // Boundary check X
+                  y: Math.max(0, Math.min(newY, 720 - el.size.height)), // Boundary check Y
+                },
+              }
+            : el
+        )
+      );
+    } else if (isResizing && selectedElement && initialElementRect && resizeHandle) {
+      const deltaX = e.clientX - initialMousePos.x;
+      const deltaY = e.clientY - initialMousePos.y;
+
+      let newWidth = initialElementRect.width;
+      let newHeight = initialElementRect.height;
+      let newX = initialElementRect.x;
+      let newY = initialElementRect.y;
+
+      switch (resizeHandle) {
+        case 'bottom-right':
+          newWidth = Math.max(10, initialElementRect.width + deltaX);
+          newHeight = Math.max(10, initialElementRect.height + deltaY);
+          break;
+        case 'bottom-left':
+          newWidth = Math.max(10, initialElementRect.width - deltaX);
+          newHeight = Math.max(10, initialElementRect.height + deltaY);
+          newX = initialElementRect.x + deltaX;
+          break;
+        case 'top-right':
+          newWidth = Math.max(10, initialElementRect.width + deltaX);
+          newHeight = Math.max(10, initialElementRect.height - deltaY);
+          newY = initialElementRect.y + deltaY;
+          break;
+        case 'top-left':
+          newWidth = Math.max(10, initialElementRect.width - deltaX);
+          newHeight = Math.max(10, initialElementRect.height - deltaY);
+          newX = initialElementRect.x + deltaX;
+          newY = initialElementRect.y + deltaY;
+          break;
+      }
+
+      // Apply boundary checks for resizing
+      newX = Math.max(0, newX);
+      newY = Math.max(0, newY);
+      newWidth = Math.min(newWidth, 1280 - newX);
+      newHeight = Math.min(newHeight, 720 - newY);
+
+      setElements(prevElements =>
+        prevElements.map(el =>
+          el.id === selectedElement.id
+            ? { ...el, size: { width: newWidth, height: newHeight }, position: { x: newX, y: newY } }
+            : el
+        )
+      );
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+    setDraggedElementId(null);
+    setIsResizing(false);
+    setResizeHandle(null);
+    setInitialElementRect(null);
+    setInitialMousePos({ x: 0, y: 0 });
+  };
+
+  return (
+    <div className="bg-white p-6 rounded-lg shadow-md flex">
+      {/* Left Panel: Element List and Add Custom Element */}
+      <div className="w-1/4 pr-4 border-r border-gray-200">
+        <h3 className="text-lg font-semibold mb-2">Elements</h3>
+        <div className="mb-4">
+          <input
+            type="text"
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+            placeholder="New Element ID"
+            value={newElementId}
+            onChange={(e) => setNewElementId(e.target.value)}
+          />
+          <button
+            onClick={handleAddElement}
+            className="mt-2 w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg text-sm"
+          >
+            Add Custom Element
+          </button>
+        </div>
+        <ul>
+          {elements.map((el) => (
+            <li
+              key={el.id}
+              className={`cursor-pointer p-2 rounded-md mb-1 ${selectedElementId === el.id ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-50'}`}
+              onClick={() => handleElementClick(el.id)}
+            >
+              {el.id}
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* Middle Panel: Switch Screen Preview */}
+      <div
+        ref={previewRef}
+        className="w-1/2 px-4 relative"
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp} // Stop dragging/resizing if mouse leaves preview area
+        style={{ cursor: isDragging ? 'grabbing' : (isResizing ? 'grabbing' : 'grab') }}
+      >
+        <h2 className="text-xl font-semibold mb-4 text-center">Layout Editor</h2>
+        <div className="relative w-[1280px] h-[720px] bg-gray-200 border-2 border-gray-400 mx-auto overflow-hidden">
+          {/* This will be our Switch screen preview area */}
+          <p className="text-center text-gray-500 mt-10">Switch Screen Preview (1280x720)</p>
+          {elements.map((el) => (
+            <div
+              key={el.id}
+              className={`absolute border ${selectedElementId === el.id ? 'border-blue-500 border-2' : 'border-transparent'}`}
+              style={{
+                left: el.position.x,
+                top: el.position.y,
+                width: el.size.width,
+                height: el.size.height,
+                backgroundColor: el.color,
+                transform: `scaleX(${el.scale.x}) scaleY(${el.scale.y}) rotateX(${el.rotation.x}deg) rotateY(${el.rotation.y}deg) rotateZ(${el.rotation.z}deg)`,
+                opacity: el.visible ? 1 : 0.5,
+                cursor: 'pointer',
+              }}
+              onMouseDown={(e) => handleMouseDown(e, el.id)}
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent click from propagating to parent div
+                handleElementClick(el.id);
+              }}
+            >
+              <span className="text-xs text-white p-1 bg-black bg-opacity-50 rounded-br-md">{el.id}</span>
+              {selectedElementId === el.id && !isResizing && !isDragging && (
+                <>
+                  {/* Resizing Handles */}
+                  <div
+                    className="absolute w-3 h-3 bg-blue-500 border border-white cursor-nwse-resize"
+                    style={{ top: -6, left: -6 }}
+                    onMouseDown={(e) => handleResizeHandleMouseDown(e, 'top-left')}
+                  />
+                  <div
+                    className="absolute w-3 h-3 bg-blue-500 border border-white cursor-nesw-resize"
+                    style={{ top: -6, right: -6 }}
+                    onMouseDown={(e) => handleResizeHandleMouseDown(e, 'top-right')}
+                  />
+                  <div
+                    className="absolute w-3 h-3 bg-blue-500 border border-white cursor-nesw-resize"
+                    style={{ bottom: -6, left: -6 }}
+                    onMouseDown={(e) => handleResizeHandleMouseDown(e, 'bottom-left')}
+                  />
+                  <div
+                    className="absolute w-3 h-3 bg-blue-500 border border-white cursor-nwse-resize"
+                    style={{ bottom: -6, right: -6 }}
+                    onMouseDown={(e) => handleResizeHandleMouseDown(e, 'bottom-right')}
+                  />
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Right Panel: Property Editor */}
+      <div className="w-1/4 pl-4 border-l border-gray-200">
+        <h3 className="text-lg font-semibold mb-2">Properties</h3>
+        {selectedElement ? (
+          <div>
+            <p className="font-medium mb-2">Selected: {selectedElement.id}</p>
+
+            {/* Delete Button */}
+            <button
+              onClick={handleDeleteElement}
+              className="mt-2 w-full bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg text-sm"
+            >
+              Delete Element
+            </button>
+
+            {/* Position */}
+            <h4 className="text-sm font-semibold mt-4 mb-2">Position</h4>
+            <InputGroup
+              label="X"
+              type="number"
+              value={selectedElement.position.x}
+              onChange={(e) => handleNestedPropertyChange('position', 'x', parseFloat(e.target.value))}
+            />
+            <InputGroup
+              label="Y"
+              type="number"
+              value={selectedElement.position.y}
+              onChange={(e) => handleNestedPropertyChange('position', 'y', parseFloat(e.target.value))}
+            />
+
+            {/* Size */}
+            <h4 className="text-sm font-semibold mt-4 mb-2">Size</h4>
+            <InputGroup
+              label="Width"
+              type="number"
+              value={selectedElement.size.width}
+              onChange={(e) => handleNestedPropertyChange('size', 'width', parseFloat(e.target.value))}
+            />
+            <InputGroup
+              label="Height"
+              type="number"
+              value={selectedElement.size.height}
+              onChange={(e) => handleNestedPropertyChange('size', 'height', parseFloat(e.target.value))}
+            />
+
+            {/* Scale */}
+            <h4 className="text-sm font-semibold mt-4 mb-2">Scale</h4>
+            <InputGroup
+              label="Scale X"
+              type="number"
+              step={0.1}
+              value={selectedElement.scale.x}
+              onChange={(e) => handleNestedPropertyChange('scale', 'x', parseFloat(e.target.value))}
+            />
+            <InputGroup
+              label="Scale Y"
+              type="number"
+              step={0.1}
+              value={selectedElement.scale.y}
+              onChange={(e) => handleNestedPropertyChange('scale', 'y', parseFloat(e.target.value))}
+            />
+
+            {/* Rotation */}
+            <h4 className="text-sm font-semibold mt-4 mb-2">Rotation (Degrees)</h4>
+            <InputGroup
+              label="Rotate X"
+              type="number"
+              value={selectedElement.rotation.x}
+              onChange={(e) => handleNestedPropertyChange('rotation', 'x', parseFloat(e.target.value))}
+            />
+            <InputGroup
+              label="Rotate Y"
+              type="number"
+              value={selectedElement.rotation.y}
+              onChange={(e) => handleNestedPropertyChange('rotation', 'y', parseFloat(e.target.value))}
+            />
+            <InputGroup
+              label="Rotate Z"
+              type="number"
+              value={selectedElement.rotation.z}
+              onChange={(e) => handleNestedPropertyChange('rotation', 'z', parseFloat(e.target.value))}
+            />
+
+            {/* Visible */}
+            <h4 className="text-sm font-semibold mt-4 mb-2">Visibility</h4>
+            <InputGroup
+              label="Visible"
+              type="checkbox"
+              value={selectedElement.visible}
+              onChange={(e) => handlePropertyChange('visible', e.target.checked)}
+            />
+
+            {/* Color */}
+            {selectedElement.color !== undefined && (
+              <div className="mt-4">
+                <h4 className="text-sm font-semibold mb-2">Color</h4>
+                <div className="flex items-center space-x-2 mb-2">
+                  <HexColorPicker
+                    color={rgbaToHex(selectedElement.color)}
+                    onChange={(newHex) => {
+                      // Preserve existing alpha if present, otherwise default to FF
+                      const currentAlphaMatch = selectedElement.color?.match(/#([a-f\d]{6})([a-f\d]{2})$/i);
+                      const alpha = currentAlphaMatch ? currentAlphaMatch[2] : 'FF';
+                      handlePropertyChange('color', hexToRgba(newHex, alpha));
+                    }}
+                  />
+                  <InputGroup
+                    label="RGBA Hex"
+                    type="text"
+                    value={selectedElement.color}
+                    onChange={(e) => handlePropertyChange('color', e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
+
+          </div>
+        ) : (
+          <p className="text-sm text-gray-600">Select an element to edit its properties.</p>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default LayoutEditor;

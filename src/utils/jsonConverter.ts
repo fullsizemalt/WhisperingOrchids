@@ -1,4 +1,4 @@
-import { LayoutElement } from '../components/LayoutEditor';
+import type { LayoutElement } from '../types.js';
 
 interface ThemeConfig {
   name: string;

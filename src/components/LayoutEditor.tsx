@@ -1,37 +1,26 @@
-import React, { useState, ChangeEvent, useEffect, useRef } from 'react';
+import type { LayoutElement } from "../types.js";
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { HexColorPicker } from 'react-colorful';
+import {
+  Plus,
+  Trash2,
+  Eye,
+  EyeOff,
+  Square,
+  Image as ImageIcon,
+  Settings,
+  ChevronDown,
+  ChevronRight
+} from 'lucide-react';
 
-interface Position {
-  x: number;
-  y: number;
-}
-
-interface Size {
-  width: number;
-  height: number;
-}
-
-interface Scale {
-  x: number;
-  y: number;
-}
-
-interface Rotation {
-  x: number;
-  y: number;
-  z: number;
-}
-
-export interface LayoutElement {
-  id: string;
-  type: 'pane' | 'pic1' | 'txt1' | 'usd1'; // Based on CustomLayouts.md
-  position: Position;
-  size: Size;
-  scale: Scale;
-  rotation: Rotation;
-  visible: boolean;
-  color?: string; // For pic1/txt1, or background for general pane
-  // Add other properties as needed from CustomLayouts.md
+interface LayoutEditorProps {
+  onElementsChange: (elements: LayoutElement[]) => void;
+  themeTarget: string;
+  backgroundImage?: File | null;
+  layoutElements?: LayoutElement[];
+  mode?: 'preview' | 'elements' | 'properties';
+  fullscreen?: boolean;
 }
 
 const getDefaultLayout = (target: string): LayoutElement[] => {
@@ -104,7 +93,7 @@ const getDefaultLayout = (target: string): LayoutElement[] => {
       {
         id: 'RootPane',
         type: 'pane',
-        position: { x: 0, y: 0 }, // Relative to RdtBtnIconGame
+        position: { x: 0, y: 0 },
         size: { width: 200, height: 200 },
         scale: { x: 1, y: 1 },
         rotation: { x: 0, y: 0, z: 0 },
@@ -114,7 +103,7 @@ const getDefaultLayout = (target: string): LayoutElement[] => {
       {
         id: 'B_Hit',
         type: 'pane',
-        position: { x: 0, y: 0 }, // Relative to RdtBtnIconGame
+        position: { x: 0, y: 0 },
         size: { width: 200, height: 200 },
         scale: { x: 1, y: 1 },
         rotation: { x: 0, y: 0, z: 0 },
@@ -125,206 +114,89 @@ const getDefaultLayout = (target: string): LayoutElement[] => {
         id: 'SystemSettingsButton',
         type: 'pic1',
         position: { x: 1000, y: 600 },
-        size: { width: 150, height: 50 },
+        size: { width: 80, height: 80 },
         scale: { x: 1, y: 1 },
         rotation: { x: 0, y: 0, z: 0 },
         visible: true,
-        color: '#0000FF80', // Semi-transparent blue
+        color: '#808080FF', // Gray, system settings button
       },
-      // Add more Home Menu specific elements here as needed
     ];
   } else if (target === 'Lockscreen') {
     return [
       {
-        id: 'LockscreenClock',
-        type: 'txt1',
-        position: { x: 500, y: 300 },
-        size: { width: 200, height: 50 },
-        scale: { x: 1, y: 1 },
-        rotation: { x: 0, y: 0, z: 0 },
-        visible: true,
-        color: '#FFFFFFC0', // Semi-transparent white
-      },
-      {
-        id: 'LockscreenBattery',
-        type: 'pic1',
-        position: { x: 100, y: 50 },
-        size: { width: 80, height: 40 },
-        scale: { x: 1, y: 1 },
-        rotation: { x: 0, y: 0, z: 0 },
-        visible: true,
-        color: '#00FF00C0', // Semi-transparent green
-      },
-      // Add more Lockscreen specific elements here
-    ];
-  } else if (target === 'All Software') {
-    return [
-      {
-        id: 'AllSoftwareGrid',
-        type: 'pane',
-        position: { x: 50, y: 50 },
-        size: { width: 1180, height: 600 },
-        scale: { x: 1, y: 1 },
-        rotation: { x: 0, y: 0, z: 0 },
-        visible: true,
-        color: '#80808080', // Semi-transparent gray
-      },
-      {
-        id: 'AllSoftwareSearch',
-        type: 'pane',
-        position: { x: 100, y: 10 },
-        size: { width: 1080, height: 30 },
-        scale: { x: 1, y: 1 },
-        rotation: { x: 0, y: 0, z: 0 },
-        visible: true,
-        color: '#C0C0C080', // Semi-transparent light gray
-      },
-    ];
-  } else if (target === 'System Settings') {
-    return [
-      {
-        id: 'SettingsMenu',
-        type: 'pane',
-        position: { x: 0, y: 0 },
-        size: { width: 400, height: 720 },
-        scale: { x: 1, y: 1 },
-        rotation: { x: 0, y: 0, z: 0 },
-        visible: true,
-        color: '#40404080', // Semi-transparent dark gray
-      },
-      {
-        id: 'SettingsContent',
-        type: 'pane',
-        position: { x: 400, y: 0 },
-        size: { width: 880, height: 720 },
-        scale: { x: 1, y: 1 },
-        rotation: { x: 0, y: 0, z: 0 },
-        visible: true,
-        color: '#60606080', // Semi-transparent medium gray
-      },
-    ];
-  } else if (target === 'User Page') {
-    return [
-      {
-        id: 'UserIcon',
-        type: 'pic1',
-        position: { x: 50, y: 50 },
-        size: { width: 100, height: 100 },
-        scale: { x: 1, y: 1 },
-        rotation: { x: 0, y: 0, z: 0 },
-        visible: true,
-        color: '#FFFF0080', // Semi-transparent yellow
-      },
-      {
-        id: 'UserName',
-        type: 'txt1',
-        position: { x: 160, y: 80 },
-        size: { width: 200, height: 30 },
-        scale: { x: 1, y: 1 },
-        rotation: { x: 0, y: 0, z: 0 },
-        visible: true,
-        color: '#FFFFFFC0', // Semi-transparent white
-      },
-    ];
-  } else if (target === 'News') {
-    return [
-      {
-        id: 'NewsFeedItem1',
-        type: 'pane',
-        position: { x: 50, y: 50 },
-        size: { width: 1180, height: 150 },
-        scale: { x: 1, y: 1 },
-        rotation: { x: 0, y: 0, z: 0 },
-        visible: true,
-        color: '#A0A0A080', // Semi-transparent gray
-      },
-      {
-        id: 'NewsFeedItem2',
-        type: 'pane',
-        position: { x: 50, y: 220 },
-        size: { width: 1180, height: 150 },
-        scale: { x: 1, y: 1 },
-        rotation: { x: 0, y: 0, z: 0 },
-        visible: true,
-        color: '#A0A0A080', // Semi-transparent gray
-      },
-    ];
-  } else if (target === 'Player select applet') {
-    return [
-      {
-        id: 'PlayerSelectRoot',
+        id: 'RootPane',
         type: 'pane',
         position: { x: 0, y: 0 },
         size: { width: 1280, height: 720 },
         scale: { x: 1, y: 1 },
         rotation: { x: 0, y: 0, z: 0 },
         visible: true,
-        color: '#FFC0CB1A', // Light pink
+        color: '#000000FF', // Black background
       },
       {
-        id: 'PlayerIcon1',
-        type: 'pic1',
-        position: { x: 100, y: 200 },
-        size: { width: 150, height: 150 },
-        scale: { x: 1, y: 1 },
-        rotation: { x: 0, y: 0, z: 0 },
-        visible: true,
-        color: '#ADD8E666', // Light blue
-      },
-      {
-        id: 'PlayerName1',
+        id: 'N_DateTime',
         type: 'txt1',
-        position: { x: 100, y: 360 },
-        size: { width: 150, height: 30 },
+        position: { x: 640, y: 360 },
+        size: { width: 400, height: 100 },
         scale: { x: 1, y: 1 },
         rotation: { x: 0, y: 0, z: 0 },
         visible: true,
-        color: '#FFFFFFCC', // White
+        color: '#FFFFFFFF', // White text for date/time
+      },
+      {
+        id: 'N_BatteryIcon',
+        type: 'pic1',
+        position: { x: 1200, y: 50 },
+        size: { width: 50, height: 25 },
+        scale: { x: 1, y: 1 },
+        rotation: { x: 0, y: 0, z: 0 },
+        visible: true,
+        color: '#FFFFFFFF', // White battery icon
+      },
+    ];
+  } else {
+    // Generic placeholder layout for other applets
+    return [
+      {
+        id: 'GenericRootPane',
+        type: 'pane',
+        position: { x: 0, y: 0 },
+        size: { width: 1280, height: 720 },
+        scale: { x: 1, y: 1 },
+        rotation: { x: 0, y: 0, z: 0 },
+        visible: true,
+        color: '#FF000033', // Light red placeholder
+      },
+      {
+        id: 'GenericContentPane',
+        type: 'pane',
+        position: { x: 100, y: 100 },
+        size: { width: 1080, height: 520 },
+        scale: { x: 1, y: 1 },
+        rotation: { x: 0, y: 0, z: 0 },
+        visible: true,
+        color: '#00FF0033', // Light green placeholder
+      },
+      {
+        id: 'GenericButton',
+        type: 'pane',
+        position: { x: 200, y: 200 },
+        size: { width: 150, height: 50 },
+        scale: { x: 1, y: 1 },
+        rotation: { x: 0, y: 0, z: 0 },
+        visible: true,
+        color: '#0000FF33', // Light blue placeholder
       },
     ];
   }
-  return []; // Default empty array
 };
-
-// Helper component for input groups
-interface InputGroupProps {
-  label: string;
-  type: string;
-  value: string | number | boolean;
-  onChange: (e: ChangeEvent<HTMLInputElement>) => void;
-  min?: number;
-  max?: number;
-  step?: number;
-}
-
-const InputGroup: React.FC<InputGroupProps> = ({ label, type, value, onChange, min, max, step }) => (
-  <div className="mb-2">
-    <label className="block text-xs font-medium text-gray-700">{label}</label>
-    <input
-      type={type}
-      value={value as any}
-      onChange={onChange}
-      min={min}
-      max={max}
-      step={step}
-      className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${type === 'checkbox' ? 'w-auto' : ''}`}
-      checked={type === 'checkbox' ? (value as boolean) : undefined}
-    />
-  </div>
-);
-
-interface LayoutEditorProps {
-  onElementsChange: (elements: LayoutElement[]) => void;
-  themeTarget: string; // New prop for theme target
-}
 
 // Utility to convert RGBA hex to standard hex (for color picker)
 const rgbaToHex = (rgba: string): string => {
-  const match = rgba.match(/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
-  if (match) {
-    return `#${match[1]}${match[2]}${match[3]}`;
+  if (!rgba.startsWith('#') || rgba.length !== 9) {
+    return '#FFFFFF'; // Default to white if not a valid RGBA hex
   }
-  return rgba; // Return as is if not a valid RGBA hex
+  return rgba.substring(0, 7); // Return just the RGB part
 };
 
 // Utility to convert standard hex to RGBA hex (for internal use)
@@ -336,22 +208,29 @@ const hexToRgba = (hex: string, alpha: string = 'FF'): string => {
   return hex; // Return as is if not a valid hex
 };
 
-const LayoutEditor: React.FC<LayoutEditorProps> = ({ onElementsChange, themeTarget }) => {
-  const [elements, setElements] = useState<LayoutElement[]>(getDefaultLayout(themeTarget));
+const LayoutEditor: React.FC<LayoutEditorProps> = ({
+  onElementsChange,
+  themeTarget,
+  backgroundImage,
+  layoutElements: propLayoutElements,
+  mode = 'preview',
+}) => {
+  const [elements, setElements] = useState<LayoutElement[]>(propLayoutElements || getDefaultLayout(themeTarget));
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
   const [newElementId, setNewElementId] = useState<string>('');
+  const [backgroundImageUrl, setBackgroundImageUrl] = useState<string | null>(null);
+  const [expandedProperties, setExpandedProperties] = useState<Set<string>>(new Set(['position', 'size']));
 
   const previewRef = useRef<HTMLDivElement>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [draggedElementId, setDraggedElementId] = useState<string | null>(null);
-  const [dragOffset, setDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
-
-  const [isResizing, setIsResizing] = useState(false);
-  const [resizeHandle, setResizeHandle] = useState<string | null>(null);
-  const [initialMousePos, setInitialMousePos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
-  const [initialElementRect, setInitialElementRect] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
 
   const selectedElement = elements.find(el => el.id === selectedElementId);
+
+  // Sync with prop elements
+  useEffect(() => {
+    if (propLayoutElements) {
+      setElements(propLayoutElements);
+    }
+  }, [propLayoutElements]);
 
   // Notify parent component whenever elements change
   useEffect(() => {
@@ -360,397 +239,395 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({ onElementsChange, themeTarg
 
   // Update elements when themeTarget changes
   useEffect(() => {
-    setElements(getDefaultLayout(themeTarget));
-    setSelectedElementId(null); // Clear selection when layout changes
-  }, [themeTarget]);
+    if (!propLayoutElements) {
+      setElements(getDefaultLayout(themeTarget));
+      setSelectedElementId(null);
+    }
+  }, [themeTarget, propLayoutElements]);
 
-  const handleElementClick = (id: string) => {
+  // Handle background image
+  useEffect(() => {
+    if (backgroundImage) {
+      const url = URL.createObjectURL(backgroundImage);
+      setBackgroundImageUrl(url);
+      return () => URL.revokeObjectURL(url);
+    } else {
+      setBackgroundImageUrl(null);
+    }
+  }, [backgroundImage]);
+
+  const handleElementClick = useCallback((id: string) => {
     setSelectedElementId(id);
-  };
+  }, []);
 
-  const handlePropertyChange = (property: string, value: any) => {
+  const handlePropertyChange = useCallback((property: string, value: any) => {
     if (!selectedElement) return;
 
     setElements(prevElements =>
       prevElements.map(el =>
         el.id === selectedElement.id
-          ? { ...el, [property]: value } // Direct property update
+          ? { ...el, [property]: value }
           : el
       )
     );
-  };
+  }, [selectedElement]);
 
-  const handleNestedPropertyChange = (parentProperty: keyof LayoutElement, childProperty: string, value: any) => {
-    if (!selectedElement) return;
-
-    setElements(prevElements =>
-      prevElements.map(el =>
-        el.id === selectedElement.id
-          ? {
-              ...el,
-              [parentProperty]: {
-                ...(el[parentProperty] as any),
-                [childProperty]: value,
-              },
-            }
-          : el
-      )
-    );
-  };
-
-  const handleAddElement = () => {
-    if (newElementId.trim() === '') {
-      alert('Element ID cannot be empty.');
-      return;
-    }
-    if (elements.some(el => el.id === newElementId.trim())) {
-      alert(`Element with ID '${newElementId.trim()}' already exists.`);
-      return;
-    }
+  const addCustomElement = useCallback(() => {
+    if (!newElementId.trim()) return;
 
     const newElement: LayoutElement = {
       id: newElementId.trim(),
-      type: 'pane', // Default type, can be made selectable later
-      position: { x: 0, y: 0 },
-      size: { width: 100, height: 100 },
+      type: 'pane',
+      position: { x: 100, y: 100 },
+      size: { width: 200, height: 200 },
       scale: { x: 1, y: 1 },
       rotation: { x: 0, y: 0, z: 0 },
       visible: true,
-      color: '#CCCCCC80', // Default semi-transparent gray
+      color: '#FF000033',
     };
 
-    setElements(prevElements => [...prevElements, newElement]);
-    setNewElementId(''); // Clear input
-    setSelectedElementId(newElement.id); // Select the newly added element
-  };
+    setElements(prev => [...prev, newElement]);
+    setNewElementId('');
+    setSelectedElementId(newElement.id);
+  }, [newElementId]);
 
-  const handleDeleteElement = () => {
-    if (!selectedElement) return;
-
-    if (window.confirm(`Are you sure you want to delete element '${selectedElement.id}'?`)) {
-      setElements(prevElements => prevElements.filter(el => el.id !== selectedElement.id));
-      setSelectedElementId(null); // Clear selection after deleting
+  const deleteElement = useCallback((elementId: string) => {
+    setElements(prev => prev.filter(el => el.id !== elementId));
+    if (selectedElementId === elementId) {
+      setSelectedElementId(null);
     }
-  };
+  }, [selectedElementId]);
 
-  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>, id: string) => {
-    // Only start dragging if not resizing
-    if (isResizing) return;
-
-    if (previewRef.current) {
-      const rect = previewRef.current.getBoundingClientRect();
-      const element = elements.find(el => el.id === id);
-      if (element) {
-        setIsDragging(true);
-        setDraggedElementId(id);
-        setDragOffset({
-          x: e.clientX - rect.left - element.position.x,
-          y: e.clientY - rect.top - element.position.y,
-        });
-        setSelectedElementId(id); // Select element on drag start
+  const toggleProperty = useCallback((property: string) => {
+    setExpandedProperties(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(property)) {
+        newSet.delete(property);
+      } else {
+        newSet.add(property);
       }
-    }
-  };
+      return newSet;
+    });
+  }, []);
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!previewRef.current) return;
-
-    const rect = previewRef.current.getBoundingClientRect();
-
-    if (isDragging && draggedElementId) {
-      const newX = e.clientX - rect.left - dragOffset.x;
-      const newY = e.clientY - rect.top - dragOffset.y;
-
-      setElements(prevElements =>
-        prevElements.map(el =>
-          el.id === draggedElementId
-            ? {
-                ...el,
-                position: {
-                  x: Math.max(0, Math.min(newX, 1280 - el.size.width)), // Boundary check X
-                  y: Math.max(0, Math.min(newY, 720 - el.size.height)), // Boundary check Y
-                },
-              }
-            : el
-        )
-      );
-    } else if (isResizing && selectedElement && initialElementRect && resizeHandle) {
-      const deltaX = e.clientX - initialMousePos.x;
-      const deltaY = e.clientY - initialMousePos.y;
-
-      let newWidth = initialElementRect.width;
-      let newHeight = initialElementRect.height;
-      let newX = initialElementRect.x;
-      let newY = initialElementRect.y;
-
-      switch (resizeHandle) {
-        case 'bottom-right':
-          newWidth = Math.max(10, initialElementRect.width + deltaX);
-          newHeight = Math.max(10, initialElementRect.height + deltaY);
-          break;
-        case 'bottom-left':
-          newWidth = Math.max(10, initialElementRect.width - deltaX);
-          newHeight = Math.max(10, initialElementRect.height + deltaY);
-          newX = initialElementRect.x + deltaX;
-          break;
-        case 'top-right':
-          newWidth = Math.max(10, initialElementRect.width + deltaX);
-          newHeight = Math.max(10, initialElementRect.height - deltaY);
-          newY = initialElementRect.y + deltaY;
-          break;
-        case 'top-left':
-          newWidth = Math.max(10, initialElementRect.width - deltaX);
-          newHeight = Math.max(10, initialElementRect.height - deltaY);
-          newX = initialElementRect.x + deltaX;
-          newY = initialElementRect.y + deltaY;
-          break;
-      }
-
-      // Apply boundary checks for resizing
-      newX = Math.max(0, newX);
-      newY = Math.max(0, newY);
-      newWidth = Math.min(newWidth, 1280 - newX);
-      newHeight = Math.min(newHeight, 720 - newY);
-
-      setElements(prevElements =>
-        prevElements.map(el =>
-          el.id === selectedElement.id
-            ? { ...el, size: { width: newWidth, height: newHeight }, position: { x: newX, y: newY } }
-            : el
-        )
-      );
-    }
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-    setDraggedElementId(null);
-    setIsResizing(false);
-    setResizeHandle(null);
-    setInitialElementRect(null);
-    setInitialMousePos({ x: 0, y: 0 });
-  };
-
-  return (
-    <div className="bg-white p-6 rounded-lg shadow-md flex">
-      {/* Left Panel: Element List and Add Custom Element */}
-      <div className="w-1/4 pr-4 border-r border-gray-200">
-        <h3 className="text-lg font-semibold mb-2">Elements</h3>
-        <div className="mb-4">
-          <input
-            type="text"
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-            placeholder="New Element ID"
-            value={newElementId}
-            onChange={(e) => setNewElementId(e.target.value)}
-          />
-          <button
-            onClick={handleAddElement}
-            className="mt-2 w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg text-sm"
-          >
-            Add Custom Element
-          </button>
-        </div>
-        <ul>
-          {elements.map((el) => (
-            <li
-              key={el.id}
-              className={`cursor-pointer p-2 rounded-md mb-1 ${selectedElementId === el.id ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-50'}`}
-              onClick={() => handleElementClick(el.id)}
-            >
-              {el.id}
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      {/* Middle Panel: Switch Screen Preview */}
+  // Preview Mode Component
+  const PreviewMode = () => (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="w-full h-full backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl overflow-hidden"
+    >
       <div
         ref={previewRef}
-        className="w-1/2 px-4 relative"
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp} // Stop dragging/resizing if mouse leaves preview area
-        style={{ cursor: isDragging ? 'grabbing' : (isResizing ? 'grabbing' : 'grab') }}
+        className="relative w-full h-full bg-gray-900 rounded-2xl overflow-hidden"
+        style={{
+          aspectRatio: '16/9',
+          backgroundImage: backgroundImageUrl ? `url(${backgroundImageUrl})` : undefined,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
       >
-        <h2 className="text-xl font-semibold mb-4 text-center">Layout Editor</h2>
-        <div className="relative w-[1280px] h-[720px] bg-gray-200 border-2 border-gray-400 mx-auto overflow-hidden">
-          {/* This will be our Switch screen preview area */}
-          <p className="text-center text-gray-500 mt-10">Switch Screen Preview (1280x720)</p>
-          {elements.map((el) => (
-            <div
-              key={el.id}
-              className={`absolute border ${selectedElementId === el.id ? 'border-blue-500 border-2' : 'border-transparent'}`}
+        {/* Nintendo Switch Preview Canvas */}
+        <div className="absolute inset-0" style={{ width: '1280px', height: '720px', transform: 'scale(0.8)', transformOrigin: 'top left' }}>
+          {elements.map((element) => (
+            <motion.div
+              key={element.id}
+              className={`absolute border-2 cursor-pointer transition-all duration-200 ${
+                selectedElementId === element.id
+                  ? 'border-blue-400 shadow-lg shadow-blue-400/50'
+                  : 'border-white/30 hover:border-white/60'
+              }`}
               style={{
-                left: el.position.x,
-                top: el.position.y,
-                width: el.size.width,
-                height: el.size.height,
-                backgroundColor: el.color,
-                transform: `scaleX(${el.scale.x}) scaleY(${el.scale.y}) rotateX(${el.rotation.x}deg) rotateY(${el.rotation.y}deg) rotateZ(${el.rotation.z}deg)`,
-                opacity: el.visible ? 1 : 0.5,
-                cursor: 'pointer',
+                left: element.position.x,
+                top: element.position.y,
+                width: element.size.width,
+                height: element.size.height,
+                backgroundColor: element.visible ? element.color : 'transparent',
+                transform: `scale(${element.scale.x}, ${element.scale.y}) rotate(${element.rotation.z}deg)`,
+                transformOrigin: 'top left',
+                opacity: element.visible ? 1 : 0.3,
               }}
-              onMouseDown={(e) => handleMouseDown(e, el.id)}
               onClick={(e) => {
-                e.stopPropagation(); // Prevent click from propagating to parent div
-                handleElementClick(el.id);
+                e.stopPropagation();
+                handleElementClick(element.id);
               }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
             >
-              <span className="text-xs text-white p-1 bg-black bg-opacity-50 rounded-br-md">{el.id}</span>
-              {selectedElementId === el.id && !isResizing && !isDragging && (
-                <>
-                  {/* Resizing Handles */}
-                  <div
-                    className="absolute w-3 h-3 bg-blue-500 border border-white cursor-nwse-resize"
-                    style={{ top: -6, left: -6 }}
-                    onMouseDown={(e) => handleResizeHandleMouseDown(e, 'top-left')}
-                  />
-                  <div
-                    className="absolute w-3 h-3 bg-blue-500 border border-white cursor-nesw-resize"
-                    style={{ top: -6, right: -6 }}
-                    onMouseDown={(e) => handleResizeHandleMouseDown(e, 'top-right')}
-                  />
-                  <div
-                    className="absolute w-3 h-3 bg-blue-500 border border-white cursor-nesw-resize"
-                    style={{ bottom: -6, left: -6 }}
-                    onMouseDown={(e) => handleResizeHandleMouseDown(e, 'bottom-left')}
-                  />
-                  <div
-                    className="absolute w-3 h-3 bg-blue-500 border border-white cursor-nwse-resize"
-                    style={{ bottom: -6, right: -6 }}
-                    onMouseDown={(e) => handleResizeHandleMouseDown(e, 'bottom-right')}
-                  />
-                </>
-              )}
-            </div>
+              {/* Element Label */}
+              <div className="absolute -top-6 left-0 px-2 py-1 bg-black/70 text-white text-xs rounded truncate max-w-full">
+                {element.id}
+              </div>
+
+              {/* Element Type Icon */}
+              <div className="absolute top-1 right-1 p-1 bg-black/50 rounded">
+                {element.type === 'pane' ? (
+                  <Square className="w-3 h-3 text-white" />
+                ) : element.type === 'pic1' ? (
+                  <ImageIcon className="w-3 h-3 text-white" />
+                ) : (
+                  <span className="text-white text-xs">T</span>
+                )}
+              </div>
+            </motion.div>
           ))}
         </div>
       </div>
+    </motion.div>
+  );
 
-      {/* Right Panel: Property Editor */}
-      <div className="w-1/4 pl-4 border-l border-gray-200">
-        <h3 className="text-lg font-semibold mb-2">Properties</h3>
-        {selectedElement ? (
-          <div>
-            <p className="font-medium mb-2">Selected: {selectedElement.id}</p>
+  // Elements Mode Component
+  const ElementsMode = () => (
+    <div className="space-y-4">
+      {/* Add Custom Element */}
+      <div className="space-y-3">
+        <input
+          type="text"
+          value={newElementId}
+          onChange={(e) => setNewElementId(e.target.value)}
+          placeholder="New Element ID"
+          className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+          onKeyPress={(e) => e.key === 'Enter' && addCustomElement()}
+        />
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={addCustomElement}
+          disabled={!newElementId.trim()}
+          className="w-full px-4 py-2 rounded-lg bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium text-sm transition-all duration-200 flex items-center justify-center space-x-2"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Add Element</span>
+        </motion.button>
+      </div>
 
-            {/* Delete Button */}
-            <button
-              onClick={handleDeleteElement}
-              className="mt-2 w-full bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg text-sm"
-            >
-              Delete Element
-            </button>
-
-            {/* Position */}
-            <h4 className="text-sm font-semibold mt-4 mb-2">Position</h4>
-            <InputGroup
-              label="X"
-              type="number"
-              value={selectedElement.position.x}
-              onChange={(e) => handleNestedPropertyChange('position', 'x', parseFloat(e.target.value))}
-            />
-            <InputGroup
-              label="Y"
-              type="number"
-              value={selectedElement.position.y}
-              onChange={(e) => handleNestedPropertyChange('position', 'y', parseFloat(e.target.value))}
-            />
-
-            {/* Size */}
-            <h4 className="text-sm font-semibold mt-4 mb-2">Size</h4>
-            <InputGroup
-              label="Width"
-              type="number"
-              value={selectedElement.size.width}
-              onChange={(e) => handleNestedPropertyChange('size', 'width', parseFloat(e.target.value))}
-            />
-            <InputGroup
-              label="Height"
-              type="number"
-              value={selectedElement.size.height}
-              onChange={(e) => handleNestedPropertyChange('size', 'height', parseFloat(e.target.value))}
-            />
-
-            {/* Scale */}
-            <h4 className="text-sm font-semibold mt-4 mb-2">Scale</h4>
-            <InputGroup
-              label="Scale X"
-              type="number"
-              step={0.1}
-              value={selectedElement.scale.x}
-              onChange={(e) => handleNestedPropertyChange('scale', 'x', parseFloat(e.target.value))}
-            />
-            <InputGroup
-              label="Scale Y"
-              type="number"
-              step={0.1}
-              value={selectedElement.scale.y}
-              onChange={(e) => handleNestedPropertyChange('scale', 'y', parseFloat(e.target.value))}
-            />
-
-            {/* Rotation */}
-            <h4 className="text-sm font-semibold mt-4 mb-2">Rotation (Degrees)</h4>
-            <InputGroup
-              label="Rotate X"
-              type="number"
-              value={selectedElement.rotation.x}
-              onChange={(e) => handleNestedPropertyChange('rotation', 'x', parseFloat(e.target.value))}
-            />
-            <InputGroup
-              label="Rotate Y"
-              type="number"
-              value={selectedElement.rotation.y}
-              onChange={(e) => handleNestedPropertyChange('rotation', 'y', parseFloat(e.target.value))}
-            />
-            <InputGroup
-              label="Rotate Z"
-              type="number"
-              value={selectedElement.rotation.z}
-              onChange={(e) => handleNestedPropertyChange('rotation', 'z', parseFloat(e.target.value))}
-            />
-
-            {/* Visible */}
-            <h4 className="text-sm font-semibold mt-4 mb-2">Visibility</h4>
-            <InputGroup
-              label="Visible"
-              type="checkbox"
-              value={selectedElement.visible}
-              onChange={(e) => handlePropertyChange('visible', e.target.checked)}
-            />
-
-            {/* Color */}
-            {selectedElement.color !== undefined && (
-              <div className="mt-4">
-                <h4 className="text-sm font-semibold mb-2">Color</h4>
-                <div className="flex items-center space-x-2 mb-2">
-                  <HexColorPicker
-                    color={rgbaToHex(selectedElement.color)}
-                    onChange={(newHex) => {
-                      // Preserve existing alpha if present, otherwise default to FF
-                      const currentAlphaMatch = selectedElement.color?.match(/#([a-f\d]{6})([a-f\d]{2})$/i);
-                      const alpha = currentAlphaMatch ? currentAlphaMatch[2] : 'FF';
-                      handlePropertyChange('color', hexToRgba(newHex, alpha));
-                    }}
-                  />
-                  <InputGroup
-                    label="RGBA Hex"
-                    type="text"
-                    value={selectedElement.color}
-                    onChange={(e) => handlePropertyChange('color', e.target.value)}
-                  />
-                </div>
+      {/* Elements List */}
+      <div className="space-y-2 max-h-96 overflow-y-auto">
+        {elements.map((element) => (
+          <motion.div
+            key={element.id}
+            className={`p-3 rounded-lg border transition-all duration-200 cursor-pointer ${
+              selectedElementId === element.id
+                ? 'bg-blue-500/20 border-blue-400'
+                : 'bg-white/5 border-white/10 hover:bg-white/10'
+            }`}
+            onClick={() => handleElementClick(element.id)}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2 min-w-0">
+                {element.type === 'pane' ? (
+                  <Square className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                ) : element.type === 'pic1' ? (
+                  <ImageIcon className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                ) : (
+                  <span className="text-gray-400 text-xs flex-shrink-0">T</span>
+                )}
+                <span className="text-white text-sm font-medium truncate">{element.id}</span>
               </div>
-            )}
-
-          </div>
-        ) : (
-          <p className="text-sm text-gray-600">Select an element to edit its properties.</p>
-        )}
+              <div className="flex items-center space-x-1 flex-shrink-0">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handlePropertyChange('visible', !element.visible);
+                  }}
+                  className="p-1 rounded hover:bg-white/10 transition-colors"
+                >
+                  {element.visible ? (
+                    <Eye className="w-4 h-4 text-green-400" />
+                  ) : (
+                    <EyeOff className="w-4 h-4 text-gray-500" />
+                  )}
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteElement(element.id);
+                  }}
+                  className="p-1 rounded hover:bg-red-500/20 transition-colors text-red-400 hover:text-red-300"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        ))}
       </div>
     </div>
   );
+
+  // Properties Mode Component
+  const PropertiesMode = () => {
+    if (!selectedElement) {
+      return (
+        <div className="text-center text-gray-400 py-8">
+          <Settings className="w-8 h-8 mx-auto mb-2 opacity-50" />
+          <p className="text-sm">Select an element to edit its properties</p>
+        </div>
+      );
+    }
+
+    const PropertySection = ({ title, property, children }: { title: string; property: string; children: React.ReactNode }) => (
+      <div className="border border-white/10 rounded-lg overflow-hidden">
+        <button
+          onClick={() => toggleProperty(property)}
+          className="w-full px-4 py-3 bg-white/5 hover:bg-white/10 transition-colors flex items-center justify-between text-left"
+        >
+          <span className="font-medium text-white">{title}</span>
+          {expandedProperties.has(property) ? (
+            <ChevronDown className="w-4 h-4 text-gray-400" />
+          ) : (
+            <ChevronRight className="w-4 h-4 text-gray-400" />
+          )}
+        </button>
+        <AnimatePresence>
+          {expandedProperties.has(property) && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              <div className="p-4 space-y-3">
+                {children}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+
+    const NumberInput = ({ label, value, onChange }: { label: string; value: number; onChange: (value: number) => void }) => (
+      <div>
+        <label className="block text-sm text-gray-300 mb-1">{label}</label>
+        <input
+          type="number"
+          value={value}
+          onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
+          className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+        />
+      </div>
+    );
+
+    return (
+      <div className="space-y-4">
+        <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+          <div className="flex items-center space-x-2">
+            {selectedElement.type === 'pane' ? (
+              <Square className="w-4 h-4 text-blue-400" />
+            ) : selectedElement.type === 'pic1' ? (
+              <ImageIcon className="w-4 h-4 text-blue-400" />
+            ) : (
+              <span className="text-blue-400 text-xs">T</span>
+            )}
+            <span className="text-white font-medium text-sm">{selectedElement.id}</span>
+          </div>
+        </div>
+
+        <PropertySection title="Position" property="position">
+          <div className="grid grid-cols-2 gap-3">
+            <NumberInput
+              label="X"
+              value={selectedElement.position.x}
+              onChange={(value) => handlePropertyChange('position', { ...selectedElement.position, x: value })}
+            />
+            <NumberInput
+              label="Y"
+              value={selectedElement.position.y}
+              onChange={(value) => handlePropertyChange('position', { ...selectedElement.position, y: value })}
+            />
+          </div>
+        </PropertySection>
+
+        <PropertySection title="Size" property="size">
+          <div className="grid grid-cols-2 gap-3">
+            <NumberInput
+              label="Width"
+              value={selectedElement.size.width}
+              onChange={(value) => handlePropertyChange('size', { ...selectedElement.size, width: value })}
+            />
+            <NumberInput
+              label="Height"
+              value={selectedElement.size.height}
+              onChange={(value) => handlePropertyChange('size', { ...selectedElement.size, height: value })}
+            />
+          </div>
+        </PropertySection>
+
+        <PropertySection title="Scale" property="scale">
+          <div className="grid grid-cols-2 gap-3">
+            <NumberInput
+              label="X Scale"
+              value={selectedElement.scale.x}
+              onChange={(value) => handlePropertyChange('scale', { ...selectedElement.scale, x: value })}
+            />
+            <NumberInput
+              label="Y Scale"
+              value={selectedElement.scale.y}
+              onChange={(value) => handlePropertyChange('scale', { ...selectedElement.scale, y: value })}
+            />
+          </div>
+        </PropertySection>
+
+        <PropertySection title="Rotation" property="rotation">
+          <NumberInput
+            label="Z Rotation (degrees)"
+            value={selectedElement.rotation.z}
+            onChange={(value) => handlePropertyChange('rotation', { ...selectedElement.rotation, z: value })}
+          />
+        </PropertySection>
+
+        <PropertySection title="Appearance" property="appearance">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-sm text-gray-300">Visible</label>
+              <button
+                onClick={() => handlePropertyChange('visible', !selectedElement.visible)}
+                className={`w-12 h-6 rounded-full transition-colors ${
+                  selectedElement.visible ? 'bg-green-500' : 'bg-gray-600'
+                }`}
+              >
+                <div
+                  className={`w-5 h-5 bg-white rounded-full transition-transform ${
+                    selectedElement.visible ? 'translate-x-6' : 'translate-x-0.5'
+                  }`}
+                />
+              </button>
+            </div>
+            <div>
+              <label className="block text-sm text-gray-300 mb-2">Color</label>
+              <div className="space-y-2">
+                <HexColorPicker
+                  color={rgbaToHex(selectedElement.color || '#FFFFFFFF')}
+                  onChange={(color) => {
+                    const currentAlpha = (selectedElement.color || '#FFFFFFFF').slice(7, 9) || 'FF';
+                    handlePropertyChange('color', hexToRgba(color, currentAlpha));
+                  }}
+                  className="w-full"
+                />
+                <input
+                  type="text"
+                  value={selectedElement.color}
+                  onChange={(e) => handlePropertyChange('color', e.target.value)}
+                  placeholder="#RRGGBBAA"
+                  className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-mono"
+                />
+              </div>
+            </div>
+          </div>
+        </PropertySection>
+      </div>
+    );
+  };
+
+  // Render based on mode
+  if (mode === 'preview') return <PreviewMode />;
+  if (mode === 'elements') return <ElementsMode />;
+  if (mode === 'properties') return <PropertiesMode />;
+
+  return <PreviewMode />;
 };
 
 export default LayoutEditor;

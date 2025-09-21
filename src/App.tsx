@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Maximize2, Minimize2, Download, Upload, Save, Undo2, Redo2, Info, Palette, Eye, PanelRightOpen, PanelRightClose } from 'lucide-react';
 import ThemeConfig from './components/ThemeConfig';
 import LayoutEditor from './components/LayoutEditor';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
-import { LayoutElement } from './components/LayoutEditor';
+import type { LayoutElement } from './types.js';
 import { convertLayoutElementsToJson } from './utils/jsonConverter';
 import About from './components/About';
-import useHistory from './hooks/useHistory'; // Import the useHistory hook
+import useHistory from './hooks/useHistory';
 
 // Define the structure of the saved project state
 interface ProjectState {
@@ -46,6 +48,9 @@ function App() {
   // Use useHistory for layoutElements
   const { state: layoutElements, set: setLayoutElementsHistory, undo, redo, canUndo, canRedo } = useHistory<LayoutElement[]>([]);
   const [showAboutModal, setShowAboutModal] = useState(false);
+  const [isFullscreenPreview, setIsFullscreenPreview] = useState(false);
+  const [activeTab, setActiveTab] = useState<'config' | 'editor'>('config');
+  const [sidebarVisible, setSidebarVisible] = useState(true);
 
   // Effect to load project from local storage on initial mount
   useEffect(() => {
@@ -141,9 +146,9 @@ function App() {
           backgroundImage: loadedBackgroundImage,
         });
         setLayoutElementsHistory(projectState.layoutElements); // Use setLayoutElementsHistory
-        alert('Project loaded from browser storage!');
+        // Project loaded silently
       } else {
-        alert('No saved project found in browser storage.');
+        // No saved project - silent
       }
     } catch (error) {
       console.error('Failed to load project from browser storage:', error);
@@ -186,81 +191,297 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 text-gray-800">
-      <header className="bg-blue-600 text-white p-4 shadow-md flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Nintendo Switch Theme Builder</h1>
-        <button
-          onClick={() => setShowAboutModal(true)}
-          className="bg-blue-700 hover:bg-blue-800 text-white font-bold py-1 px-3 rounded-lg text-sm"
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white overflow-hidden">
+      {/* Modern Header */}
+      <motion.header
+        initial={{ y: -100 }}
+        animate={{ y: 0 }}
+        className="backdrop-blur-xl bg-white/5 border-b border-white/10 sticky top-0 z-50"
+      >
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+                <Palette className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                  WhisperingOrchids
+                </h1>
+                <p className="text-sm text-gray-400">Nintendo Switch Theme Builder</p>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-3">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setIsFullscreenPreview(!isFullscreenPreview)}
+                className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all duration-200"
+              >
+                {isFullscreenPreview ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setShowAboutModal(true)}
+                className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all duration-200"
+              >
+                <Info className="w-5 h-5" />
+              </motion.button>
+            </div>
+          </div>
+        </div>
+      </motion.header>
+
+      {/* Fullscreen Preview Mode */}
+      <AnimatePresence>
+        {isFullscreenPreview && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/95 backdrop-blur-sm"
+            onClick={() => setIsFullscreenPreview(false)}
+          >
+            <div className="h-full flex items-center justify-center p-8">
+              <motion.div
+                initial={{ scale: 0.8 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0.8 }}
+                className="w-full max-w-6xl aspect-video bg-gray-900 rounded-2xl shadow-2xl overflow-hidden"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <LayoutEditor
+                  onElementsChange={handleLayoutElementsChange}
+                  themeTarget={themeConfig.target}
+                  fullscreen={true}
+                  backgroundImage={themeConfig.backgroundImage}
+                />
+              </motion.div>
+              <button
+                onClick={() => setIsFullscreenPreview(false)}
+                className="absolute top-6 right-6 p-3 rounded-full bg-white/10 hover:bg-white/20 transition-all duration-200"
+              >
+                <Minimize2 className="w-6 h-6 text-white" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-6 py-8">
+        {/* Tab Navigation */}
+        <div className="flex justify-between items-center mb-8">
+          <div className="flex space-x-1">
+            {[{id: 'config', label: 'Theme Config', icon: Palette}, {id: 'editor', label: 'Layout Editor', icon: Eye}].map((tab) => (
+              <motion.button
+                key={tab.id}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setActiveTab(tab.id as 'config' | 'editor')}
+                className={`px-6 py-3 rounded-xl font-medium transition-all duration-200 flex items-center space-x-2 ${
+                  activeTab === tab.id
+                    ? 'bg-white/15 text-white border border-white/20'
+                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <tab.icon className="w-5 h-5" />
+                <span>{tab.label}</span>
+              </motion.button>
+            ))}
+          </div>
+
+          {/* Sidebar Toggle - only show on editor tab */}
+          {activeTab === 'editor' && (
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setSidebarVisible(!sidebarVisible)}
+              className="p-3 rounded-xl bg-white/10 hover:bg-white/20 transition-all duration-200"
+              title={sidebarVisible ? 'Hide Sidebar' : 'Show Sidebar'}
+            >
+              {sidebarVisible ? <PanelRightClose className="w-5 h-5" /> : <PanelRightOpen className="w-5 h-5" />}
+            </motion.button>
+          )}
+        </div>
+
+        {/* Tab Content */}
+        <AnimatePresence mode="wait">
+          {activeTab === 'config' && (
+            <motion.div
+              key="config"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ duration: 0.2 }}
+            >
+              <ThemeConfig
+                onConfigChange={handleConfigChange}
+                currentConfig={themeConfig}
+              />
+            </motion.div>
+          )}
+
+          {activeTab === 'editor' && (
+            <motion.div
+              key="editor"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.2 }}
+              className="flex gap-6 h-[calc(100vh-280px)]"
+            >
+              {/* Main Preview Area - Responsive width */}
+              <motion.div
+                className={`${sidebarVisible ? 'flex-1' : 'w-full'} min-w-0 transition-all duration-300`}
+                layout
+              >
+                <LayoutEditor
+                  onElementsChange={handleLayoutElementsChange}
+                  themeTarget={themeConfig.target}
+                  backgroundImage={themeConfig.backgroundImage}
+                  layoutElements={layoutElements}
+                  mode="preview"
+                />
+              </motion.div>
+
+              {/* Sidebar - Toggleable */}
+              <AnimatePresence>
+                {sidebarVisible && (
+                  <motion.div
+                    initial={{ opacity: 0, x: 300, width: 0 }}
+                    animate={{ opacity: 1, x: 0, width: 320 }}
+                    exit={{ opacity: 0, x: 300, width: 0 }}
+                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                    className="flex-shrink-0 space-y-6 overflow-hidden"
+                  >
+                    {/* Elements & Add Custom Element */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6"
+                    >
+                      <h3 className="text-lg font-bold mb-4 text-white">Elements</h3>
+                      <LayoutEditor
+                        onElementsChange={handleLayoutElementsChange}
+                        themeTarget={themeConfig.target}
+                        backgroundImage={themeConfig.backgroundImage}
+                        layoutElements={layoutElements}
+                        mode="elements"
+                      />
+                    </motion.div>
+
+                    {/* Properties Panel */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.1 }}
+                      className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6"
+                    >
+                      <h3 className="text-lg font-bold mb-4 text-white">Properties</h3>
+                      <LayoutEditor
+                        onElementsChange={handleLayoutElementsChange}
+                        themeTarget={themeConfig.target}
+                        backgroundImage={themeConfig.backgroundImage}
+                        layoutElements={layoutElements}
+                        mode="properties"
+                      />
+                    </motion.div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Action Bar */}
+        <motion.div
+          initial={{ y: 100 }}
+          animate={{ y: 0 }}
+          className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-40"
         >
-          About
-        </button>
-      </header>
-      <main className="container mx-auto p-4 mt-8">
-        <ThemeConfig onConfigChange={handleConfigChange} />
+          <div className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 shadow-2xl p-4">
+            <div className="flex items-center space-x-3">
+              {/* Undo/Redo */}
+              <div className="flex space-x-1">
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={undo}
+                  disabled={!canUndo}
+                  className="p-3 rounded-xl bg-white/10 hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                  title="Undo"
+                >
+                  <Undo2 className="w-5 h-5" />
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={redo}
+                  disabled={!canRedo}
+                  className="p-3 rounded-xl bg-white/10 hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                  title="Redo"
+                >
+                  <Redo2 className="w-5 h-5" />
+                </motion.button>
+              </div>
 
-        {/* Display current config for debugging/verification */}
-        <div className="bg-white p-6 rounded-lg shadow-md mb-8">
-          <h2 className="text-xl font-semibold mb-4">Current Theme Configuration (for dev)</h2>
-          <p><strong>Name:</strong> {themeConfig.name}</p>
-          <p><strong>Author:</strong> {themeConfig.author}</p>
-          <p><strong>Target:</strong> {themeConfig.target}</p>
-          <p><strong>Background Image:</strong> {themeConfig.backgroundImage ? themeConfig.backgroundImage.name : 'None'}</p>
-        </div>
+              <div className="w-px h-8 bg-white/20"></div>
 
-        <LayoutEditor onElementsChange={handleLayoutElementsChange} themeTarget={themeConfig.target} />
+              {/* Save/Load */}
+              <div className="flex space-x-1">
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => saveProject(false)}
+                  className="p-3 rounded-xl bg-blue-500/20 hover:bg-blue-500/30 transition-all duration-200"
+                  title="Save to Browser"
+                >
+                  <Save className="w-5 h-5" />
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => saveProject(true)}
+                  className="p-3 rounded-xl bg-blue-500/20 hover:bg-blue-500/30 transition-all duration-200"
+                  title="Download Project"
+                >
+                  <Download className="w-5 h-5" />
+                </motion.button>
+                <motion.label
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  className="p-3 rounded-xl bg-blue-500/20 hover:bg-blue-500/30 transition-all duration-200 cursor-pointer"
+                  title="Upload Project"
+                >
+                  <Upload className="w-5 h-5" />
+                  <input type="file" accept=".json" className="hidden" onChange={loadProjectFromFile} />
+                </motion.label>
+              </div>
 
-        <div className="mt-8 text-center space-x-4">
-          {/* Undo/Redo Buttons */}
-          <button
-            onClick={undo}
-            disabled={!canUndo}
-            className="bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Undo
-          </button>
-          <button
-            onClick={redo}
-            disabled={!canRedo}
-            className="bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Redo
-          </button>
+              <div className="w-px h-8 bg-white/20"></div>
 
-          <button
-            onClick={() => saveProject(false)}
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg"
-          >
-            Save Project (Browser)
-          </button>
-          <button
-            onClick={() => saveProject(true)}
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg"
-          >
-            Download Project (File)
-          </button>
-          <button
-            onClick={loadProjectFromLocalStorage}
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg"
-          >
-            Load Project (Browser)
-          </button>
-          <label className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg cursor-pointer">
-            Upload Project (File)
-            <input type="file" accept=".json" className="hidden" onChange={loadProjectFromFile} />
-          </label>
-          <button
-            onClick={generateNxtheme}
-            className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={!themeConfig.backgroundImage}
-          >
-            Generate .nxtheme
-          </button>
-        </div>
-
-        {/* About Modal */}
-        {showAboutModal && <About onClose={() => setShowAboutModal(false)} />}
+              {/* Generate */}
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={generateNxtheme}
+                disabled={!themeConfig.backgroundImage}
+                className="px-6 py-3 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium"
+              >
+                Generate .nxtheme
+              </motion.button>
+            </div>
+          </div>
+        </motion.div>
       </main>
+
+      {/* About Modal */}
+      <AnimatePresence>
+        {showAboutModal && <About onClose={() => setShowAboutModal(false)} />}
+      </AnimatePresence>
     </div>
   );
 }

@@ -1,0 +1,31 @@
+interface Position {
+  x: number;
+  y: number;
+}
+
+interface Size {
+  width: number;
+  height: number;
+}
+
+interface Scale {
+  x: number;
+  y: number;
+}
+
+interface Rotation {
+  x: number;
+  y: number;
+  z: number;
+}
+
+export interface LayoutElement {
+  id: string;
+  type: 'pane' | 'pic1' | 'txt1' | 'usd1';
+  position: Position;
+  size: Size;
+  scale: Scale;
+  rotation: Rotation;
+  visible: boolean;
+  color?: string;
+}
