@@ -7,6 +7,7 @@ import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import type { LayoutElement } from './types.js';
 import { convertLayoutElementsToJson } from './utils/jsonConverter';
+import { BflytParser } from './utils/bflytParser';
 import About from './components/About';
 import useHistory from './hooks/useHistory';
 
@@ -68,6 +69,39 @@ function App() {
 
   const handleLayoutElementsChange = (elements: LayoutElement[]) => {
     setLayoutElementsHistory(elements);
+  };
+
+  const handleBflytUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const buffer = Buffer.from(e.target?.result as ArrayBuffer);
+        const parser = new BflytParser();
+        const parsedBflyt = parser.parse(buffer);
+
+        const newLayoutElements: LayoutElement[] = parsedBflyt.sections
+          .filter(section => section.name === 'pan1' || section.name === 'pic1' || section.name === 'txt1')
+          .map(section => ({
+            id: section.content.paneName,
+            type: section.name,
+            position: { x: section.content.positionX, y: section.content.positionY },
+            size: { width: section.content.width, height: section.content.height },
+            scale: { x: section.content.scaleX, y: section.content.scaleY },
+            rotation: { x: section.content.rotationX, y: section.content.rotationY, z: section.content.rotationZ },
+            visible: (section.content.flags & 1) === 1,
+          }));
+
+        setLayoutElementsHistory(newLayoutElements);
+        alert('BFLYT file loaded!');
+      } catch (error) {
+        console.error('Failed to load BFLYT file:', error);
+        alert('Failed to load BFLYT file. Invalid file format.');
+      }
+    };
+    reader.readAsArrayBuffer(file);
   };
 
   const generateNxtheme = async () => {
@@ -473,6 +507,16 @@ function App() {
               >
                 Generate .nxtheme
               </motion.button>
+
+              {/* Upload BFLYT */}
+              <motion.label
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 transition-all duration-200 font-medium cursor-pointer"
+              >
+                Upload BFLYT
+                <input type="file" accept=".bflyt" className="hidden" onChange={handleBflytUpload} />
+              </motion.label>
             </div>
           </div>
         </motion.div>

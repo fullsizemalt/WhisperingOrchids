@@ -101,3 +101,43 @@ export const convertLayoutElementsToJson = (elements: LayoutElement[], themeConf
     _Message: "Be excellent to each other.", // Include the positive message
   };
 };
+
+export const convertNxthemeJsonToLayoutElements = (nxthemeJson: any): LayoutElement[] => {
+  const layoutElements: LayoutElement[] = [];
+
+  for (const fileEntry of nxthemeJson.Files) {
+    for (const patch of fileEntry.Patches) {
+      const newElement: LayoutElement = {
+        id: patch.PaneName,
+        type: 'pane', // Default type, can be refined later if needed
+        position: { x: 0, y: 0 },
+        size: { width: 0, height: 0 },
+        scale: { x: 1, y: 1 },
+        rotation: { x: 0, y: 0, z: 0 },
+        visible: true,
+      };
+
+      if (patch.Properties) {
+        if (patch.Properties.Position) {
+          newElement.position = { x: patch.Properties.Position.X, y: patch.Properties.Position.Y };
+        }
+        if (patch.Properties.Size) {
+          newElement.size = { width: patch.Properties.Size.Width, height: patch.Properties.Size.Height };
+        }
+        if (patch.Properties.Scale) {
+          newElement.scale = { x: patch.Properties.Scale.X, y: patch.Properties.Scale.Y };
+        }
+        if (patch.Properties.Rotation) {
+          newElement.rotation = { x: patch.Properties.Rotation.X, y: patch.Properties.Rotation.Y, z: patch.Properties.Rotation.Z };
+        }
+        if (patch.Properties.Visible !== undefined) {
+          newElement.visible = patch.Properties.Visible;
+        }
+        // Handle colors if needed, but LayoutElement only has a single 'color' property
+        // This might require a more complex mapping or a decision on how to represent multiple colors
+      }
+      layoutElements.push(newElement);
+    }
+  }
+  return layoutElements;
+};
