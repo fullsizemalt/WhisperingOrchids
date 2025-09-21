@@ -6,11 +6,35 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+wszst_output.txt
 
 node_modules
 dist
 dist-ssr
 *.local
+
+# Python related
+venv/
+*.pyc
+__pycache__/
+
+# Extracted files and temporary scripts
+*.sarc
+*.yaz0
+*.nxtheme
+sarc_extracted/
+szs-v2.42a-r8989-mac64/
+decompress.py
+extract_nxtheme.py
+extract_sarc.py
+extract_sarc_v2.py
+find_bflyt.py
+inspect_files.py
+map_filenames.py
+ResidentMenu_extracted/
+
+# Themes directory from Switch SD card
+themes/
 
 # Editor directories and files
 .vscode/*
