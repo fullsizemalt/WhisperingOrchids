@@ -11,8 +11,11 @@ import {
   Image as ImageIcon,
   Settings,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  Camera,
+  Monitor
 } from 'lucide-react';
+import ScreenshotPreview from './ScreenshotPreview';
 
 interface LayoutEditorProps {
   onElementsChange: (elements: LayoutElement[]) => void;
@@ -220,6 +223,7 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({
   const [newElementId, setNewElementId] = useState<string>('');
   const [backgroundImageUrl, setBackgroundImageUrl] = useState<string | null>(null);
   const [expandedProperties, setExpandedProperties] = useState<Set<string>>(new Set(['position', 'size']));
+  const [previewMode, setPreviewMode] = useState<'canvas' | 'screenshot'>('canvas');
 
   const previewRef = useRef<HTMLDivElement>(null);
 
@@ -317,62 +321,99 @@ const LayoutEditor: React.FC<LayoutEditorProps> = ({
       animate={{ opacity: 1 }}
       className="w-full h-full backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl overflow-hidden"
     >
-      <div
-        ref={previewRef}
-        className="relative w-full h-full bg-gray-900 rounded-2xl overflow-hidden"
-        style={{
-          aspectRatio: '16/9',
-          backgroundImage: backgroundImageUrl ? `url(${backgroundImageUrl})` : undefined,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-        }}
-      >
-        {/* Nintendo Switch Preview Canvas */}
-        <div className="absolute inset-0" style={{ width: '1280px', height: '720px', transform: 'scale(0.8)', transformOrigin: 'top left' }}>
-          {elements.map((element) => (
-            <motion.div
-              key={element.id}
-              className={`absolute border-2 cursor-pointer transition-all duration-200 ${
-                selectedElementId === element.id
-                  ? 'border-blue-400 shadow-lg shadow-blue-400/50'
-                  : 'border-white/30 hover:border-white/60'
-              }`}
-              style={{
-                left: element.position.x,
-                top: element.position.y,
-                width: element.size.width,
-                height: element.size.height,
-                backgroundColor: element.visible ? element.color : 'transparent',
-                transform: `scale(${element.scale.x}, ${element.scale.y}) rotate(${element.rotation.z}deg)`,
-                transformOrigin: 'top left',
-                opacity: element.visible ? 1 : 0.3,
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleElementClick(element.id);
-              }}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              {/* Element Label */}
-              <div className="absolute -top-6 left-0 px-2 py-1 bg-black/70 text-white text-xs rounded truncate max-w-full">
-                {element.id}
-              </div>
-
-              {/* Element Type Icon */}
-              <div className="absolute top-1 right-1 p-1 bg-black/50 rounded">
-                {element.type === 'pane' ? (
-                  <Square className="w-3 h-3 text-white" />
-                ) : element.type === 'pic1' ? (
-                  <ImageIcon className="w-3 h-3 text-white" />
-                ) : (
-                  <span className="text-white text-xs">T</span>
-                )}
-              </div>
-            </motion.div>
-          ))}
-        </div>
+      {/* Preview Mode Toggle */}
+      <div className="absolute top-4 left-4 z-20 flex space-x-1 bg-black/70 rounded-lg p-1">
+        <button
+          onClick={() => setPreviewMode('canvas')}
+          className={`px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 flex items-center space-x-2 ${
+            previewMode === 'canvas'
+              ? 'bg-blue-500 text-white'
+              : 'text-gray-300 hover:text-white hover:bg-white/10'
+          }`}
+        >
+          <Monitor className="w-4 h-4" />
+          <span>Canvas</span>
+        </button>
+        <button
+          onClick={() => setPreviewMode('screenshot')}
+          className={`px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 flex items-center space-x-2 ${
+            previewMode === 'screenshot'
+              ? 'bg-green-500 text-white'
+              : 'text-gray-300 hover:text-white hover:bg-white/10'
+          }`}
+        >
+          <Camera className="w-4 h-4" />
+          <span>Live Preview</span>
+        </button>
       </div>
+
+      {previewMode === 'screenshot' ? (
+        <ScreenshotPreview
+          themeTarget={themeTarget}
+          layoutElements={elements}
+          backgroundImage={backgroundImage}
+          selectedElementId={selectedElementId}
+          onElementSelect={handleElementClick}
+          className="w-full h-full"
+        />
+      ) : (
+        <div
+          ref={previewRef}
+          className="relative w-full h-full bg-gray-900 rounded-2xl overflow-hidden"
+          style={{
+            aspectRatio: '16/9',
+            backgroundImage: backgroundImageUrl ? `url(${backgroundImageUrl})` : undefined,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }}
+        >
+          {/* Nintendo Switch Preview Canvas */}
+          <div className="absolute inset-0" style={{ width: '1280px', height: '720px', transform: 'scale(0.8)', transformOrigin: 'top left' }}>
+            {elements.map((element) => (
+              <motion.div
+                key={element.id}
+                className={`absolute border-2 cursor-pointer transition-all duration-200 ${
+                  selectedElementId === element.id
+                    ? 'border-blue-400 shadow-lg shadow-blue-400/50'
+                    : 'border-white/30 hover:border-white/60'
+                }`}
+                style={{
+                  left: element.position.x,
+                  top: element.position.y,
+                  width: element.size.width,
+                  height: element.size.height,
+                  backgroundColor: element.visible ? element.color : 'transparent',
+                  transform: `scale(${element.scale.x}, ${element.scale.y}) rotate(${element.rotation.z}deg)`,
+                  transformOrigin: 'top left',
+                  opacity: element.visible ? 1 : 0.3,
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleElementClick(element.id);
+                }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                {/* Element Label */}
+                <div className="absolute -top-6 left-0 px-2 py-1 bg-black/70 text-white text-xs rounded truncate max-w-full">
+                  {element.id}
+                </div>
+
+                {/* Element Type Icon */}
+                <div className="absolute top-1 right-1 p-1 bg-black/50 rounded">
+                  {element.type === 'pane' ? (
+                    <Square className="w-3 h-3 text-white" />
+                  ) : element.type === 'pic1' ? (
+                    <ImageIcon className="w-3 h-3 text-white" />
+                  ) : (
+                    <span className="text-white text-xs">T</span>
+                  )}
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 
