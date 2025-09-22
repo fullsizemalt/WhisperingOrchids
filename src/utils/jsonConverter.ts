@@ -102,10 +102,14 @@ export const convertLayoutElementsToJson = (elements: LayoutElement[], themeConf
   };
 };
 
-export const convertNxthemeJsonToLayoutElements = (nxthemeJson: any): LayoutElement[] => {
+export const convertNxthemeJsonToLayoutElements = (nxthemeJson: unknown): LayoutElement[] => {
   const layoutElements: LayoutElement[] = [];
 
-  for (const fileEntry of nxthemeJson.Files) {
+  if (!nxthemeJson || typeof nxthemeJson !== 'object' || !('Files' in nxthemeJson) || !Array.isArray((nxthemeJson as any).Files)) {
+    throw new Error('Invalid nxtheme JSON structure');
+  }
+
+  for (const fileEntry of (nxthemeJson as any).Files) {
     for (const patch of fileEntry.Patches) {
       const newElement: LayoutElement = {
         id: patch.PaneName,
@@ -117,27 +121,85 @@ export const convertNxthemeJsonToLayoutElements = (nxthemeJson: any): LayoutElem
         visible: true,
       };
 
-      if (patch.Properties) {
-        if (patch.Properties.Position) {
-          newElement.position = { x: patch.Properties.Position.X, y: patch.Properties.Position.Y };
-        }
-        if (patch.Properties.Size) {
-          newElement.size = { width: patch.Properties.Size.Width, height: patch.Properties.Size.Height };
-        }
-        if (patch.Properties.Scale) {
-          newElement.scale = { x: patch.Properties.Scale.X, y: patch.Properties.Scale.Y };
-        }
-        if (patch.Properties.Rotation) {
-          newElement.rotation = { x: patch.Properties.Rotation.X, y: patch.Properties.Rotation.Y, z: patch.Properties.Rotation.Z };
-        }
-        if (patch.Properties.Visible !== undefined) {
-          newElement.visible = patch.Properties.Visible;
-        }
-        // Handle colors if needed, but LayoutElement only has a single 'color' property
-        // This might require a more complex mapping or a decision on how to represent multiple colors
+      // FIXED: Handle both real theme format (properties directly on patch) and expected format (nested under Properties)
+      const props = patch.Properties || patch; // Use Properties if available, otherwise use patch directly
+
+      if (props.Position) {
+        newElement.position = { x: props.Position.X, y: props.Position.Y };
+      }
+      if (props.Size) {
+        newElement.size = { width: props.Size.Width, height: props.Size.Height };
+      }
+      if (props.Scale) {
+        newElement.scale = { x: props.Scale.X, y: props.Scale.Y };
+      }
+      if (props.Rotation) {
+        newElement.rotation = { x: props.Rotation.X, y: props.Rotation.Y, z: props.Rotation.Z };
+      }
+      if (props.Visible !== undefined) {
+        newElement.visible = props.Visible;
+      }
+
+      // Handle colors - real themes use ColorTL/TR/BL/BR directly
+      if (props.ColorTL || props.ColorTR || props.ColorBL || props.ColorBR) {
+        // For now, use ColorTL as the primary color (could be enhanced to support all corners)
+        newElement.color = props.ColorTL || props.ColorTR || props.ColorBL || props.ColorBR;
       }
       layoutElements.push(newElement);
     }
   }
   return layoutElements;
+};
+
+// NEW: Support multi-file themes by converting all files separately
+export const convertMultiFileNxthemeJsonToLayoutElements = (nxthemeJson: unknown): { [fileName: string]: LayoutElement[] } => {
+  const result: { [fileName: string]: LayoutElement[] } = {};
+
+  if (!nxthemeJson || typeof nxthemeJson !== 'object' || !('Files' in nxthemeJson) || !Array.isArray((nxthemeJson as any).Files)) {
+    throw new Error('Invalid nxtheme JSON structure');
+  }
+
+  for (const fileEntry of (nxthemeJson as any).Files) {
+    const layoutElements: LayoutElement[] = [];
+
+    for (const patch of fileEntry.Patches) {
+      const newElement: LayoutElement = {
+        id: patch.PaneName,
+        type: 'pane',
+        position: { x: 0, y: 0 },
+        size: { width: 0, height: 0 },
+        scale: { x: 1, y: 1 },
+        rotation: { x: 0, y: 0, z: 0 },
+        visible: true,
+      };
+
+      const props = patch.Properties || patch;
+
+      if (props.Position) {
+        newElement.position = { x: props.Position.X, y: props.Position.Y };
+      }
+      if (props.Size) {
+        newElement.size = { width: props.Size.Width, height: props.Size.Height };
+      }
+      if (props.Scale) {
+        newElement.scale = { x: props.Scale.X, y: props.Scale.Y };
+      }
+      if (props.Rotation) {
+        newElement.rotation = { x: props.Rotation.X, y: props.Rotation.Y, z: props.Rotation.Z };
+      }
+      if (props.Visible !== undefined) {
+        newElement.visible = props.Visible;
+      }
+
+      if (props.ColorTL || props.ColorTR || props.ColorBL || props.ColorBR) {
+        newElement.color = props.ColorTL || props.ColorTR || props.ColorBL || props.ColorBR;
+      }
+
+      layoutElements.push(newElement);
+    }
+
+    result[fileEntry.FileName] = layoutElements;
+  }
+
+  return result;
 };

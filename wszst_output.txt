@@ -1,1 +1,0 @@
-EXTRACT YAZ0:ResidentMenu.szs -> ./ResidentMenu.szs.d/

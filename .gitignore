@@ -1,48 +1,117 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Production builds
+dist/
+dist-ssr/
+build/
+.next/
+out/
+
+# Development
+.cache/
+.tmp/
+*.local
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
 # Logs
-logs
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
-wszst_output.txt
 
-node_modules
-dist
-dist-ssr
-*.local
-
-# Python related
+# Python files (if any development scripts)
 venv/
-*.pyc
 __pycache__/
+*.py[cod]
+*.pyc
+*.pyo
+*.pyd
+.Python
 
-# Extracted files and temporary scripts
+# Temporary files and directories
+*.tmp
+*.temp
+temp/
+tmp/
+extracted*/
+sarc_extracted/
+*_extracted/
+
+# Development tools and extracted assets
 *.sarc
 *.yaz0
 *.nxtheme
-sarc_extracted/
-szs-v2.42a-r8989-mac64/
+szs-*/
+wszst_output.txt
+real_theme_test.json
+layout.json
+temp_types.txt
+
+# Scripts and test files
 decompress.py
-extract_nxtheme.py
-extract_sarc.py
-extract_sarc_v2.py
-find_bflyt.py
-inspect_files.py
-map_filenames.py
-ResidentMenu_extracted/
+extract_*.py
+find_*.py
+inspect_*.py
+map_*.py
+parse_*.py
+test_*.js
+test_*.html
+demo_*.html
+mockup-*.zip
 
-# Themes directory from Switch SD card
+# Documentation temp files
+*_SUMMARY.md
+*_STATUS.md
+*_COMPLETE.md
+*_PROPOSAL.md
+SWITCH_SCREENSHOTS.md
+TASKS.md
+
+# Themes and assets directories
 themes/
+screenshots/switch/
 
-# Editor directories and files
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor directories
 .vscode/*
 !.vscode/extensions.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+.idea/
+*.swp
+*.swo
+*~
+
+# Package manager files
+yarn.lock
+pnpm-lock.yaml
+
+# Testing
+coverage/
+.nyc_output/
+.coverage
+
+# Misc
+*.tgz
+*.tar.gz
+*.zip
+*.rar

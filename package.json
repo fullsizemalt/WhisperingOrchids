@@ -1,13 +1,39 @@
 {
-  "name": "switch-theme-builder",
-  "private": true,
-  "version": "0.0.0",
+  "name": "whispering-orchids",
+  "description": "A modern, web-based Nintendo Switch theme builder",
+  "version": "1.0.0",
   "type": "module",
+  "homepage": "https://github.com/yourusername/WhisperingOrchids",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/WhisperingOrchids.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/WhisperingOrchids/issues"
+  },
+  "license": "MIT",
+  "author": "Gemini (Google) & Claude (Anthropic)",
+  "keywords": [
+    "nintendo-switch",
+    "theme-builder",
+    "homebrew",
+    "nxtheme",
+    "react",
+    "typescript",
+    "web-app"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "lint:fix": "eslint . --fix",
+    "typecheck": "tsc --noEmit",
+    "preview": "vite preview",
+    "clean": "rm -rf dist node_modules/.cache"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
