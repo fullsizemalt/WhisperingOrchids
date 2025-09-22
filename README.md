@@ -1,26 +1,25 @@
 # 🌺 WhisperingOrchids
 
-*A modern, web-based Nintendo Switch custom theme builder*
+*A modern, web-based Nintendo Switch theme builder*
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org/)
-[![React](https://img.shields.io/badge/React-18.3.1-blue)](https://reactjs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.2.2-blue)](https://www.typescriptlang.org/)
+[![React](https://img.shields.io/badge/React-19.1.1-blue)](https://reactjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.8.3-blue)](https://www.typescriptlang.org/)
 
 ## ✨ Overview
 
-WhisperingOrchids is a powerful, user-friendly web application that empowers Nintendo Switch users to create stunning custom themes directly in their browser. Built with modern web technologies, it offers an intuitive visual editor for designing themes without requiring complex Windows-only tools.
+WhisperingOrchids is a simple, intuitive web application for creating Nintendo Switch themes. Upload a background image, set your preferences, and generate ready-to-use `.nxtheme` files for your modded Nintendo Switch.
 
 ### 🎯 Key Features
 
-- **🖥️ Browser-Based**: No downloads required - design themes directly in your web browser
-- **🎨 Visual Editor**: Intuitive drag-and-drop interface with real-time preview
-- **📱 Responsive Design**: Modern, sleek UI with glass-morphism effects
-- **🔧 Element Customization**: Precise control over position, size, scale, rotation, and colors
-- **💾 Project Management**: Save/load projects locally or export as JSON files
-- **↩️ Undo/Redo**: Full history support for all changes
+- **🖥️ Browser-Based**: No downloads required - create themes directly in your web browser
+- **🎨 Simple Interface**: Clean, modern UI focused on ease of use
+- **📱 Responsive Design**: Beautiful interface with smooth animations
+- **💾 Project Management**: Save/load theme projects locally or as files
 - **📤 Export Ready**: Generate `.nxtheme` files ready for modded Switch consoles
 - **🌈 Multiple Targets**: Support for Home Menu, Lockscreen, System Settings, and more
+- **⚡ Performance Optimized**: Fast, responsive interface with error handling
 
 ## 🚀 Quick Start
 
@@ -48,7 +47,44 @@ WhisperingOrchids is a powerful, user-friendly web application that empowers Nin
    ```
 
 4. **Open your browser**
-   Navigate to `http://localhost:5173` (or the port shown in your terminal)
+   Navigate to `http://localhost:5179` (or the port shown in your terminal)
+
+## 🐳 Docker Deployment
+
+### Quick Start with Docker
+
+**Production Deployment:**
+```bash
+# Using Docker Compose (recommended)
+docker-compose up --build
+
+# Access the app at http://localhost:3000
+```
+
+**Development with Docker:**
+```bash
+# Run development environment with hot reload
+docker-compose --profile dev up --build
+
+# Access the dev server at http://localhost:5179
+```
+
+**Manual Docker Build:**
+```bash
+# Production build
+docker build -t whispering-orchids .
+docker run -p 3000:3000 whispering-orchids
+
+# Development build
+docker build -f Dockerfile.dev -t whispering-orchids-dev .
+docker run -p 5179:5179 -v $(pwd):/app whispering-orchids-dev
+```
+
+### Docker Benefits
+- ✅ **Zero Setup**: No Node.js installation required
+- ✅ **Consistent Environment**: Same setup across all systems
+- ✅ **Easy Deployment**: One-command production deployment
+- ✅ **Development Ready**: Hot reload and file watching included
 
 ## 📖 Usage Guide
 
@@ -59,20 +95,22 @@ WhisperingOrchids is a powerful, user-friendly web application that empowers Nin
    - Select your target (Home Menu, Lockscreen, etc.)
    - Upload a background image (1280x720 recommended)
 
-2. **Design Your Layout**
-   - Switch to the Layout Editor tab
-   - Select elements from the sidebar
-   - Drag and resize elements in the preview
-   - Customize colors and properties
+2. **Generate Your Theme**
+   - Click "Generate Theme File" to create your .nxtheme
+   - The file will be automatically downloaded
+   - Install on your modded Nintendo Switch using your preferred method
 
-3. **Export Your Theme**
-   - Use the floating action bar at the bottom
-   - Click "Generate .nxtheme" to download your theme
-   - Install on your modded Nintendo Switch
+### Need Layouts?
 
-### Fullscreen Preview
+This tool creates **theme files** (backgrounds and colors) only. For **layout modifications** (moving UI elements, changing positions), get layouts from the community:
 
-Click the maximize button in the header to enter fullscreen preview mode for better visibility while designing.
+**[Browse Layouts on Themezer](https://themezer.net/switch/layouts)**
+
+### Project Management
+
+- **Save**: Use the save button to store your project in browser storage
+- **Download**: Export your project as a JSON file for backup
+- **Upload**: Load a previously saved project JSON file
 
 ## 🛠️ Development
 
@@ -89,16 +127,17 @@ Click the maximize button in the header to enter fullscreen preview mode for bet
 
 ```
 src/
-├── components/          # React components
-│   ├── ThemeConfig.tsx  # Theme configuration form
-│   ├── LayoutEditor.tsx # Visual layout editor
-│   └── About.tsx        # About modal
-├── hooks/               # Custom React hooks
-│   └── useHistory.ts    # Undo/redo functionality
-├── types/               # TypeScript type definitions
-├── utils/               # Utility functions
-│   └── jsonConverter.ts # Theme export logic
-└── assets/              # Static assets
+├── components/           # React components
+│   ├── ThemeBuilder.tsx  # Main theme creation interface
+│   ├── About.tsx         # About modal
+│   ├── ErrorBoundary.tsx # Error handling
+│   └── ToastContainer.tsx # Notifications
+├── hooks/                # Custom React hooks
+│   ├── useDebounce.ts    # Input debouncing
+│   └── usePerformance.ts # Performance monitoring
+├── utils/                # Utility functions
+│   └── errorHandling.ts  # Error handling and validation
+└── App.tsx               # Main application component
 ```
 
 ### Available Scripts

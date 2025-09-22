@@ -1,5 +1,27 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Production builds
+dist/
+dist-ssr/
+build/
+.next/
+out/
+
+# Development
+.cache/
+.tmp/
+*.local
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
 # Logs
-logs
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -7,18 +29,89 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
+# Python files (if any development scripts)
+venv/
+__pycache__/
+*.py[cod]
+*.pyc
+*.pyo
+*.pyd
+.Python
 
-# Editor directories and files
+# Temporary files and directories
+*.tmp
+*.temp
+temp/
+tmp/
+extracted*/
+sarc_extracted/
+*_extracted/
+
+# Development tools and extracted assets
+*.sarc
+*.yaz0
+*.nxtheme
+szs-*/
+wszst_output.txt
+real_theme_test.json
+layout.json
+temp_types.txt
+
+# Scripts and test files
+decompress.py
+extract_*.py
+find_*.py
+inspect_*.py
+map_*.py
+parse_*.py
+test_*.js
+test_*.html
+demo_*.html
+mockup-*.zip
+
+# Documentation temp files
+*_SUMMARY.md
+*_STATUS.md
+*_COMPLETE.md
+*_PROPOSAL.md
+SWITCH_SCREENSHOTS.md
+TASKS.md
+
+# Themes and assets directories
+themes/
+screenshots/switch/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor directories
 .vscode/*
 !.vscode/extensions.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+.idea/
+*.swp
+*.swo
+*~
+
+# Package manager files
+yarn.lock
+pnpm-lock.yaml
+
+# Testing
+coverage/
+.nyc_output/
+.coverage
+
+# Misc
+*.tgz
+*.tar.gz
+*.zip
+*.rar
